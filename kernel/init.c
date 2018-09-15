@@ -11,6 +11,10 @@ void kernel_init(void *rootfs_cpio, void *mem, size_t sz, const char* args) {
 	kernel_globals.rootfs_cpio = rootfs_cpio;
 	kernel_globals.mem = mem;
 	kernel_globals.memsz = sz;
+
+	// Memory allocator
+	kernel_globals.allocationMemoryPointer = mem;
+	kernel_globals.stackPointer = -1;
 }
 
 void kernel_start(void) {

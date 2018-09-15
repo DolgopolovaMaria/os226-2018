@@ -107,6 +107,21 @@ static const struct cpio_old_hdr *find_exe(char *name) {
 	return found;
 }
 
+void *MyMalloc(size_t size)
+{
+	void *allocatedMemory = kernel_globals.allocationMemoryPointer;
+	kernel_globals.allocationMemoryPointer = allocatedMemory + size;
+	kernel_globals.stackPointer++;
+	kernel_globals.myStack[kernel_globals.stackPointer] = allocatedMemory;
+	return allocatedMemory;
+}
+
+void MyFree()
+{
+	kernel_globals.allocationMemoryPointer = kernel_globals.myStack[kernel_globals.stackPointer];
+	kernel_globals.stackPointer--;
+}
+
 void *load(char *name, void **entry) {
 	const struct cpio_old_hdr *ch = find_exe(name);
 	if (!ch) {
@@ -116,13 +131,17 @@ void *load(char *name, void **entry) {
 	// http://www.sco.com/developers/gabi/latest/contents.html
 	const char *rawelf = cpio_content(ch);
 
-	// IMPL ME
-	rawelf = rawelf;
-	return NULL;
+	Elf64_Ehdr* eHeader = (Elf64_Ehdr*) rawelf;
+	Elf64_Phdr* pHeader = (Elf64_Phdr*) (rawelf + eHeader->e_phoff);
+	void* memoryPointer = MyMalloc(pHeader->p_filesz);
+	*entry = memoryPointer + eHeader->e_entry;
+	memcpy(memoryPointer + pHeader->p_vaddr, rawelf + pHeader->p_offset, pHeader->p_filesz);
+	
+	return memoryPointer;
 }
 
 void unload(void *mark) {
-	// IMPL ME
+	MyFree();
 }
 
 static void tramprun(unsigned long *args) {
